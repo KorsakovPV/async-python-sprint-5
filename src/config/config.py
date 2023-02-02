@@ -23,7 +23,9 @@ class Settings(BaseSettings):
     TEST_DB_URL: Optional[Union[PostgresDsn, str]] = ''
 
     API_HOST: str = '0.0.0.0'
-    API_PORT: int = 8000
+    API_PORT: int = 8080
+
+    FILE_FOLDER: str = 'files/'
 
     @validator('DB_URL', pre=True)
     def assemble_db_connection(cls, value: Optional[str], values: Dict[str, Any]) -> Any:
@@ -50,8 +52,6 @@ class Settings(BaseSettings):
             port=str(values.get('TEST_DB_PORT')),
             path=f'/{values.get("TEST_DB_NAME") or ""}',
         )
-
-    blocked_hosts: Tuple[str, ...] = ('example.com', '*.example.com')
 
 
 settings = Settings()
