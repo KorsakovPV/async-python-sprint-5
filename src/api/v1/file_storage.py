@@ -10,7 +10,6 @@ from starlette.responses import FileResponse
 from config.config import settings
 from db.db import get_session
 from helpers.raising_http_excp import RaiseHttpException
-from helpers.utils import calculate_file_size
 from models import User
 from schemas.file import FileCreate, FileInDBBase
 from services.file import file_crud
@@ -78,7 +77,8 @@ async def usage_memory(
         db: AsyncSession = Depends(get_session),
         user: User = Depends(current_active_user)
 ):
-    query = await file_crud.get_multi(db=db, created_by=str(user.id))
-    RaiseHttpException.check_is_exist(query)
+    # query1 = await file_crud.get_multi(db=db, created_by=str(user.id))
+    query = await file_crud.usage_memory(db=db, created_by=str(user.id))
+    # RaiseHttpException.check_is_exist(query)
 
-    return {'files': calculate_file_size(query)}
+    return {'files': query}

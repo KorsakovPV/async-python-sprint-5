@@ -44,9 +44,7 @@ class User(Base):  # type: ignore
     is_active = Column(Boolean, default=True, nullable=False)
     is_superuser = Column(Boolean, default=False, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
-    created_at = Column(
-        TIMESTAMPAware(timezone=True), index=True, nullable=False, default=now_utc
-    )
+    created_at = Column(TIMESTAMPAware(timezone=True), index=True, nullable=False, default=now_utc)
 
 
 class AccessToken(Base):  # type: ignore
