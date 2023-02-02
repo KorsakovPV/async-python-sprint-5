@@ -15,8 +15,62 @@ from sqlalchemy.orm import DeclarativeMeta
 from config.config import settings
 from db.db import create_sessionmaker, get_session
 from main import app
-from models import Base, HistoryModel, UrlModel
-from schemes import urls_scheme
+from models import Base, get_user_db, FileModel
+
+import contextlib
+
+# from app.db import get_async_session, get_user_db
+# from app.schemas import UserCreate
+# from app.users import get_user_manager
+from fastapi_users.exceptions import UserAlreadyExists
+
+from schemas.user import UserCreate
+from services.user_manager import get_user_manager, auth_backend
+
+
+async def get_test_session_for_dependency_overrides() -> AsyncSession:
+    engine = get_test_engine()
+    async_session = create_sessionmaker(engine)
+    async with async_session() as session:
+        yield session
+
+get_async_session_context = contextlib.asynccontextmanager(get_test_session_for_dependency_overrides)
+get_user_db_context = contextlib.asynccontextmanager(get_user_db)
+get_user_manager_context = contextlib.asynccontextmanager(get_user_manager)
+
+
+@pytest.fixture(scope="session")
+async def user():
+    email, password, is_superuser = 'test2@2test.ru', 'test_password', False
+    try:
+        async with get_async_session_context() as session:
+            async with get_user_db_context(session) as user_db:
+                async with get_user_manager_context(user_db) as user_manager:
+                    user = await user_manager.create(
+                        UserCreate(
+                            email=email, password=password, is_superuser=is_superuser
+                        )
+                    )
+                    # print(f"User created {user}")
+                    yield user
+    except UserAlreadyExists:
+        pass
+        # print(f"User {email} already exists")
+
+
+@pytest.fixture(scope="session")
+async def token(user):
+    token = await auth_backend.get_strategy().write_token(user)
+    yield {
+        'access_token': token,
+        'token_type': 'Bearer'
+    }
+
+
+@pytest.fixture(scope="session")
+async def headers_with_token(user):
+    token = await auth_backend.get_strategy().write_token(user)
+    yield {'Authorization': f'Bearer {token}'}
 
 metadata = Base.metadata
 
@@ -121,11 +175,7 @@ def get_test_engine() -> AsyncEngine:
     return db_utils.db_engine
 
 
-async def get_test_session_for_dependency_overrides() -> AsyncSession:
-    engine = get_test_engine()
-    async_session = create_sessionmaker(engine)
-    async with async_session() as session:
-        yield session
+
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -134,43 +184,59 @@ async def get_test_session(engine) -> AsyncSession:
     async with async_session() as session:
         yield session
 
-
 @pytest_asyncio.fixture(scope='session')
-async def url_items(get_test_session) -> AsyncGenerator[UrlModel, None]:
-    url1 = UrlModel(
-        url='http://httpbin.org/uuid',
-        is_delete=False,
+async def file(get_test_session, user) -> AsyncGenerator[FileModel, None]:
+    file_ = FileModel(
+        name='name.jpg',
+        path='path_folder',
+        size=100,
+        is_downloadable=True,
+        created_by=str(user.id)
     )
-    url2 = UrlModel(
-        url='https://www.google.ru/',
-        is_delete=True,
-    )
-    get_test_session.add_all([url1, url2])
+    get_test_session.add(file_)
 
-    statement = select(UrlModel)
+    statement = select(FileModel)
     await get_test_session.execute(statement=statement)
 
-    yield [url1, url2]
+    yield file_
 
-
-@pytest_asyncio.fixture(scope='session')
-async def history_items(url_items, get_test_session) -> AsyncGenerator[HistoryModel, None]:
-    url_obj, _ = url_items
-    history = HistoryModel(
-        url_id=url_obj.id,
-        method='GET',
-        domen='',
-    )
-    get_test_session.add(history)
-
-    statement = select(HistoryModel)
-    await get_test_session.execute(statement=statement)
-
-    yield history
-
-
-@pytest_asyncio.fixture()
-def new_test_url_schema():
-    return urls_scheme.UrlCreateSchema(
-        url=f'www.google.com/{str(uuid.uuid4())}'
-    )
+#############################################################
+# @pytest_asyncio.fixture(scope='session')
+# async def url_items(get_test_session) -> AsyncGenerator[UrlModel, None]:
+#     url1 = UrlModel(
+#         url='http://httpbin.org/uuid',
+#         is_delete=False,
+#     )
+#     url2 = UrlModel(
+#         url='https://www.google.ru/',
+#         is_delete=True,
+#     )
+#     get_test_session.add_all([url1, url2])
+#
+#     statement = select(UrlModel)
+#     await get_test_session.execute(statement=statement)
+#
+#     yield [url1, url2]
+#
+#
+# @pytest_asyncio.fixture(scope='session')
+# async def history_items(url_items, get_test_session) -> AsyncGenerator[HistoryModel, None]:
+#     url_obj, _ = url_items
+#     history = HistoryModel(
+#         url_id=url_obj.id,
+#         method='GET',
+#         domen='',
+#     )
+#     get_test_session.add(history)
+#
+#     statement = select(HistoryModel)
+#     await get_test_session.execute(statement=statement)
+#
+#     yield history
+#
+#
+# @pytest_asyncio.fixture()
+# def new_test_url_schema():
+#     return urls_scheme.UrlCreateSchema(
+#         url=f'www.google.com/{str(uuid.uuid4())}'
+#     )

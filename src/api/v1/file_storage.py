@@ -77,8 +77,4 @@ async def usage_memory(
         db: AsyncSession = Depends(get_session),
         user: User = Depends(current_active_user)
 ):
-    # query1 = await file_crud.get_multi(db=db, created_by=str(user.id))
-    query = await file_crud.usage_memory(db=db, created_by=str(user.id))
-    # RaiseHttpException.check_is_exist(query)
-
-    return {'files': query}
+    return await file_crud.usage_memory(db=db, created_by=str(user.id))
