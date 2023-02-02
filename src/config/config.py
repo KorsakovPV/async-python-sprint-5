@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     TEST_DB_URL: PostgresDsn | str = ''
 
     API_HOST: str = '0.0.0.0'
-    API_PORT: int = 8080
+    API_PORT: int = 8000
 
     FILE_FOLDER: str = 'files/'
 
