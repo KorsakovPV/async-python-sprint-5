@@ -30,5 +30,3 @@ async_session = create_sessionmaker(engine)
 async def get_session() -> AsyncGenerator:# -> AsyncIterator[AsyncSession]:
     async with async_session() as session:
         yield session
-
-Base = declarative_base()
