@@ -27,9 +27,9 @@ class BaseModel(Base):  # type: ignore
         primary_key=True,
         default=uuid.uuid4
     )
-    created_at = Column(TIMESTAMP(timezone=True), server_default=sql.func.current_timestamp())
+    created_at = Column(TIMESTAMPAware(timezone=True), server_default=sql.func.current_timestamp())
     created_by = Column(String(255), nullable=True)
-    updated_at = Column(TIMESTAMP(timezone=True), onupdate=func.current_timestamp())
+    updated_at = Column(TIMESTAMPAware(timezone=True), onupdate=func.current_timestamp())
     updated_by = Column(String(255), nullable=True)
 
 

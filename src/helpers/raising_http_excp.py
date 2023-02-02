@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from starlette import status
 
-from src.core.constants import APIAnswers
+from config.constants import APIAnswers
 
 
 class RaiseHttpException:

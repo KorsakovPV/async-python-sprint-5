@@ -1,9 +1,9 @@
 import os
 
-from src.models.file import FileModel
+from models import FileModel
 
 
-def calculate_file_size(files: list[FileModel]) -> int | float:
+def calculate_file_size(files: list[FileModel]) -> int:
     sum = 0
     for file in files:
         sum += os.path.getsize(file.path)

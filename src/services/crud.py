@@ -30,7 +30,6 @@ class RepositoryDB(Repository, Generic[ModelType, CreateSchemaType, UpdateSchema
         if filters:
             statement = statement.where(and_(*filters))
         statement = statement.offset(skip).limit(limit)
-        # statement = select(self._model).filter().offset(skip).limit(limit)
         results = await db.execute(statement=statement)
         return results.scalars().all()
 
