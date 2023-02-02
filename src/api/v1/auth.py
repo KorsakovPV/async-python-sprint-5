@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
-from schemas.user import UserRead, UserCreate, UserUpdate
-from services.user_manager import fastapi_users_router, auth_backend
+from fastapi import APIRouter
+
+from schemas.user import UserCreate, UserRead, UserUpdate
+from services.user_manager import auth_backend, fastapi_users_router
 
 api_auth_router = APIRouter()
 

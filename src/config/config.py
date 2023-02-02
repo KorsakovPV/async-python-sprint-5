@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional
 
 from pydantic import BaseSettings, PostgresDsn, validator
 
@@ -13,14 +13,14 @@ class Settings(BaseSettings):
     DB_PASSWORD: str = 'postgres'
     DB_NAME: str = 'async_python_sprint_5'
     DB_PORT: int = 5432
-    DB_URL: Optional[Union[PostgresDsn, str]] = ''
+    DB_URL: PostgresDsn | str = ''
 
     TEST_DB_HOST: str = 'localhost'
     TEST_DB_USER: str = 'postgres'
     TEST_DB_PASSWORD: str = 'postgres'
     TEST_DB_NAME: str = 'test_async_python_sprint_5'
     TEST_DB_PORT: int = 5432
-    TEST_DB_URL: Optional[Union[PostgresDsn, str]] = ''
+    TEST_DB_URL: PostgresDsn | str = ''
 
     API_HOST: str = '0.0.0.0'
     API_PORT: int = 8080
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     FILE_FOLDER: str = 'files/'
 
     @validator('DB_URL', pre=True)
-    def assemble_db_connection(cls, value: Optional[str], values: Dict[str, Any]) -> Any:
+    def assemble_db_connection(cls, value: str | None, values: Dict[str, Any]) -> Any:
         if isinstance(value, str) and value != '':
             return value
         return PostgresDsn.build(

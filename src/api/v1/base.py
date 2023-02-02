@@ -1,12 +1,10 @@
-import sys
 import datetime
-
-from sqlalchemy.sql import text
-import asyncpg
+import sys
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import exc
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import text
 from starlette import status
 
 from api.v1 import file_storage
@@ -44,4 +42,3 @@ async def ping_db(db, response):
     except (exc.SQLAlchemyError, Exception) as err:
         response = response | {'db': err.message}
     return response
-

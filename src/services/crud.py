@@ -2,7 +2,7 @@ from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
 
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
-from sqlalchemy import select, update, and_
+from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Base
@@ -18,14 +18,14 @@ class RepositoryDB(Repository, Generic[ModelType, CreateSchemaType, UpdateSchema
         self._model = model
 
     async def get(self, db: AsyncSession, id_: int) -> Optional[ModelType]:
-        statement = select(self._model).where(self._model.id == id_)
+        statement = select(self._model).where(self._model.id == id_)  # type: ignore
         results = await db.execute(statement=statement)
         return results.scalar_one_or_none()
 
     async def get_multi(
         self, db: AsyncSession, *, skip=0, limit=100, **kwargs
     ) -> List[ModelType]:
-        statement = select(self._model)
+        statement = select(self._model)  # type: ignore
         filters = [getattr(self._model, key) == value for key, value in kwargs.items()]
         if filters:
             statement = statement.where(and_(*filters))
@@ -53,9 +53,13 @@ class RepositoryDB(Repository, Generic[ModelType, CreateSchemaType, UpdateSchema
         obj_in_data_without_none = {k: v for k, v in obj_in_data.items() if v is not None}
 
         await db.execute(
-            update(self._model).
-            where(self._model.id == db_obj.id).
-            values(obj_in_data_without_none)
+            update(
+                self._model  # type: ignore
+            ).where(
+                self._model.id == db_obj.id
+            ).values(
+                obj_in_data_without_none
+            )
         )
         await db.commit()
         return db_obj
