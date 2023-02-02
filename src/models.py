@@ -11,11 +11,12 @@ from fastapi_users_db_sqlalchemy.access_token import SQLAlchemyBaseAccessTokenTa
 from sqlalchemy import Column, Integer, String, DateTime, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import relationship
+from datetime import datetime
+from fastapi_users_db_sqlalchemy.generics import GUID, TIMESTAMPAware, now_utc
 
-from db.db import get_session, Base
+from db.db import get_session
 
-
-# Base = declarative_base()
+Base = declarative_base()
 
 
 class BaseModel(Base):  # type: ignore
@@ -34,23 +35,36 @@ class BaseModel(Base):  # type: ignore
 
 class FileModel(BaseModel):
     __tablename__ = "file_model"
-    # id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    name = Column(String(100), nullable=True)
+    name = Column(String(100), nullable=False)
     path = Column(String(255), nullable=False)
-    # created_at = Column(DateTime(timezone=True), index=True, server_default=func.now())
+    size = Column(Integer(), nullable=False)
+    is_downloadable = Column(Boolean(), default=True, nullable=False)
 
-    # user_id = Column(UUID, ForeignKey("user.id"))
+from fastapi_users_db_sqlalchemy.generics import GUID
 
-
-class User(SQLAlchemyBaseUserTableUUID, Base):
-    created_at = Column(TIMESTAMP(timezone=True), server_default=sql.func.current_timestamp())
-    pass
-    # files = relationship("FileModel", backref="file_model")
+UUID_ID = uuid.UUID
 
 
-class AccessToken(SQLAlchemyBaseAccessTokenTableUUID, Base):
-    created_at = Column(TIMESTAMP(timezone=True), server_default=sql.func.current_timestamp())
-    pass
+class User(Base):
+    __tablename__ = "user"
+    id: UUID_ID = Column(GUID, primary_key=True, default=uuid.uuid4)
+    email: str = Column(String(length=320), unique=True, index=True, nullable=False)
+    hashed_password: str = Column(String(length=1024), nullable=False)
+    is_active: bool = Column(Boolean, default=True, nullable=False)
+    is_superuser: bool = Column(Boolean, default=False, nullable=False)
+    is_verified: bool = Column(Boolean, default=False, nullable=False)
+    created_at: datetime = Column(
+        TIMESTAMPAware(timezone=True), index=True, nullable=False, default=now_utc
+    )
+
+
+class AccessToken(Base):
+    __tablename__ = "accesstoken"
+    token: str = Column(String(length=43), primary_key=True)
+    created_at: datetime = Column(
+        TIMESTAMPAware(timezone=True), index=True, nullable=False, default=now_utc
+    )
+    user_id = Column(GUID, ForeignKey("user.id", ondelete="cascade"), nullable=False)
 
 
 async def get_user_db(session: AsyncSession = Depends(get_session)):
