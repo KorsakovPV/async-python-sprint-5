@@ -9,9 +9,7 @@ WORKDIR /code
 COPY poetry.lock pyproject.toml /code/
 
 # Project initialization:
-RUN poetry config virtualenvs.create false && poetry install --no-interaction --no-ansi
+RUN poetry config virtualenvs.create false && poetry install --all-extras
 
 # Creating folders, and files for a project:
-COPY ./src /code
-
-#CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY . /code
