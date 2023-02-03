@@ -22,9 +22,15 @@ class BaseModel(Base):  # type: ignore
         primary_key=True,
         default=uuid.uuid4
     )
-    created_at = Column(TIMESTAMPAware(timezone=True), server_default=sql.func.current_timestamp())
+    created_at = Column(
+        TIMESTAMPAware(timezone=True),
+        server_default=sql.func.current_timestamp()
+    )
     created_by = Column(String(255), nullable=True)
-    updated_at = Column(TIMESTAMPAware(timezone=True), onupdate=func.current_timestamp())
+    updated_at = Column(
+        TIMESTAMPAware(timezone=True),
+        onupdate=func.current_timestamp()
+    )
     updated_by = Column(String(255), nullable=True)
 
 
@@ -44,7 +50,12 @@ class User(Base):  # type: ignore
     is_active = Column(Boolean, default=True, nullable=False)
     is_superuser = Column(Boolean, default=False, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
-    created_at = Column(TIMESTAMPAware(timezone=True), index=True, nullable=False, default=now_utc)
+    created_at = Column(
+        TIMESTAMPAware(timezone=True),
+        index=True,
+        nullable=False,
+        default=now_utc
+    )
 
 
 class AccessToken(Base):  # type: ignore
