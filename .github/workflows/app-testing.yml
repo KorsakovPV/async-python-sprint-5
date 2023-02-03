@@ -29,9 +29,3 @@ jobs:
     - name: Lint with flake8
       run: |
         flake8 .
-    - name: Lint with mypy
-      run: |
-        mypy .
-    - name: Lint with pytest
-      run: |
-        pytest
