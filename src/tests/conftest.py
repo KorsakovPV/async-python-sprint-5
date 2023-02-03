@@ -1,5 +1,4 @@
 import asyncio
-import uuid
 from dataclasses import dataclass
 from functools import cached_property
 from typing import AsyncGenerator
@@ -19,11 +18,6 @@ from models import Base, get_user_db, FileModel
 
 import contextlib
 
-# from app.db import get_async_session, get_user_db
-# from app.schemas import UserCreate
-# from app.users import get_user_manager
-from fastapi_users.exceptions import UserAlreadyExists
-
 from schemas.user import UserCreate
 from services.user_manager import get_user_manager, auth_backend
 
@@ -34,7 +28,9 @@ async def get_test_session_for_dependency_overrides() -> AsyncSession:
     async with async_session() as session:
         yield session
 
-get_async_session_context = contextlib.asynccontextmanager(get_test_session_for_dependency_overrides)
+
+get_async_session_context = contextlib.asynccontextmanager(
+    get_test_session_for_dependency_overrides)
 get_user_db_context = contextlib.asynccontextmanager(get_user_db)
 get_user_manager_context = contextlib.asynccontextmanager(get_user_manager)
 
@@ -42,20 +38,15 @@ get_user_manager_context = contextlib.asynccontextmanager(get_user_manager)
 @pytest.fixture(scope="session")
 async def user():
     email, password, is_superuser = 'test2@2test.ru', 'test_password', False
-    try:
-        async with get_async_session_context() as session:
-            async with get_user_db_context(session) as user_db:
-                async with get_user_manager_context(user_db) as user_manager:
-                    user = await user_manager.create(
-                        UserCreate(
-                            email=email, password=password, is_superuser=is_superuser
-                        )
+    async with get_async_session_context() as session:
+        async with get_user_db_context(session) as user_db:
+            async with get_user_manager_context(user_db) as user_manager:
+                user = await user_manager.create(
+                    UserCreate(
+                        email=email, password=password, is_superuser=is_superuser
                     )
-                    # print(f"User created {user}")
-                    yield user
-    except UserAlreadyExists:
-        pass
-        # print(f"User {email} already exists")
+                )
+                yield user
 
 
 @pytest.fixture(scope="session")
@@ -71,6 +62,7 @@ async def token(user):
 async def headers_with_token(user):
     token = await auth_backend.get_strategy().write_token(user)
     yield {'Authorization': f'Bearer {token}'}
+
 
 metadata = Base.metadata
 
@@ -175,14 +167,12 @@ def get_test_engine() -> AsyncEngine:
     return db_utils.db_engine
 
 
-
-
-
 @pytest_asyncio.fixture(scope="session")
 async def get_test_session(engine) -> AsyncSession:
     async_session = create_sessionmaker(engine)
     async with async_session() as session:
         yield session
+
 
 @pytest_asyncio.fixture(scope='session')
 async def file(get_test_session, user) -> AsyncGenerator[FileModel, None]:

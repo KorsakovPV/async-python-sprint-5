@@ -8,7 +8,7 @@ from sqlalchemy.sql import text
 from starlette import status
 
 from api.v1 import file_storage
-# from api.v1 import history, request_for_short, url
+from config.logger import logger
 from db.db import get_session
 
 api_router = APIRouter()
@@ -22,6 +22,7 @@ async def root_handler():
 
 @api_router.get('/ping', status_code=status.HTTP_200_OK)
 async def ping(db: Session = Depends(get_session)):
+    logger.info('Test ping.')
     response = {
         'api': 'v1',
         'python': sys.version_info,
@@ -32,9 +33,10 @@ async def ping(db: Session = Depends(get_session)):
 
 
 async def ping_db(db, response):
+    logger.info('Test ping dependent services.')
+    statement = text('SELECT version();')
+    start = datetime.datetime.now()
     try:
-        statement = text('SELECT version();')
-        start = datetime.datetime.now()
         await db.execute(statement)
         ping_db_time = datetime.datetime.now() - start
         response = response | {'db': ping_db_time}
