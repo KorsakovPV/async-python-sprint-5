@@ -28,7 +28,6 @@ jobs:
         poetry config virtualenvs.create false && poetry install --all-extras
     - name: Lint with flake8
       run: |
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=119 --statistics --config=setup.cfg
         flake8 .
         mypy .
         pytest
