@@ -1,0 +1,15 @@
+FROM python:3.10.8
+
+ENV POETRY_VERSION=1.2.2
+
+# System deps:
+RUN pip install "poetry==$POETRY_VERSION"
+
+WORKDIR /code
+COPY poetry.lock pyproject.toml /code/
+
+# Project initialization:
+RUN poetry config virtualenvs.create false && poetry install --all-extras
+
+# Creating folders, and files for a project:
+COPY . /code

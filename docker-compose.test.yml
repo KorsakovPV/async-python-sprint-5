@@ -1,0 +1,36 @@
+version: '3.7'
+
+services:
+  db:
+    container_name: postgres
+    build:
+      context: .
+      dockerfile: dockerization/Dockerfile-db
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_PORT: ${DB_PORT}
+
+  backend:
+    container_name: file_server
+    build:
+      context: .
+      dockerfile: dockerization/Dockerfile-server-test
+    environment:
+      TEST_DB_HOST: db
+      TEST_DB_USER: ${DB_USER}
+      TEST_DB_PASSWORD: ${DB_PASSWORD}
+      TEST_DB_NAME: ${DB_NAME}
+      TEST_DB_PORT: ${DB_PORT}
+    depends_on:
+      - db
+    entrypoint: [ "pytest" ]
+
+  nginx:
+    image: nginx:1.22.1
+    volumes:
+      - ./src/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
