@@ -1,6 +1,4 @@
-import pytest
-from fastapi import HTTPException
-from httpx import URL, AsyncClient
+from httpx import AsyncClient
 
 base_url = "http://localhost:8080"
 
@@ -27,7 +25,6 @@ class TestApiFilesHandle:
         async with AsyncClient(app=test_app, base_url=base_url) as ac:
             response = await ac.post(test_app.url_path_for('save_file'))
         assert response.status_code == 401
-
 
     async def test_get_files_without_auth(self, test_app, get_test_session):
         async with AsyncClient(app=test_app, base_url=base_url) as ac:
@@ -56,7 +53,13 @@ class TestApiFilesHandle:
             response = await ac.get(test_app.url_path_for('usage_memory'))
         assert response.status_code == 401
 
-    async def test_usage_memory_with_auth(self, test_app, get_test_session, headers_with_token, file):
+    async def test_usage_memory_with_auth(
+            self,
+            test_app,
+            get_test_session,
+            headers_with_token,
+            file
+    ):
         async with AsyncClient(
                 app=test_app,
                 base_url=base_url,

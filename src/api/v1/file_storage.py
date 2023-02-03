@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import FileResponse
 
 from config.config import settings
+from config.logger import logger
 from db.db import get_session
 from helpers.raising_http_excp import RaiseHttpException
 from models import User
@@ -25,6 +26,7 @@ async def save_file(
         db: AsyncSession = Depends(get_session),
         user: User = Depends(current_active_user)
 ) -> FileCreate:
+    logger.info('Save file.')
     id = uuid.uuid4()
     filename = file.filename
     file_path = rf'{path}/{filename}'
@@ -49,6 +51,7 @@ async def get_files(
         db: AsyncSession = Depends(get_session),
         user: User = Depends(current_active_user)
 ):
+    logger.info('Get file.')
     query = await file_crud.get_multi(db=db, created_by=str(user.id))
     RaiseHttpException.check_is_exist(query)
 
@@ -61,6 +64,7 @@ async def download_file(
         db: AsyncSession = Depends(get_session),
         user: User = Depends(current_active_user)
 ):
+    logger.info('Test ping dependent services.')
     query = await file_crud.get_multi(db=db, id=id, is_downloadable=True)
     RaiseHttpException.check_is_one(query)
     file_model = query[0]
@@ -77,4 +81,5 @@ async def usage_memory(
         db: AsyncSession = Depends(get_session),
         user: User = Depends(current_active_user)
 ):
+    logger.info('Get usage memory.')
     return await file_crud.usage_memory(db=db, created_by=str(user.id))
