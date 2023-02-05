@@ -12,17 +12,16 @@ from models import FileModel
 
 class RepositoryFile:
 
-    async def get(self, db: AsyncSession, id_: int) -> Optional[FileModel]:
+    async def get(self, db: AsyncSession, id_: int) -> FileModel | None:
         statement = select(FileModel).where(FileModel.id == id_)  # type: ignore
         results = await db.execute(statement=statement)
         return results.scalar_one_or_none()
 
     async def get_multi(
             self, db: AsyncSession, *, skip=0, limit=100, **kwargs
-    ) -> List[FileModel]:
+    ) -> list[FileModel]:
         statement = select(FileModel)  # type: ignore
-        filters = [getattr(FileModel, key) == value for key, value in kwargs.items()]
-        if filters:
+        if filters := await self.apply_filters(kwargs):
             statement = statement.where(and_(*filters))
         statement = statement.offset(skip).limit(limit)
         results = await db.execute(statement=statement)
@@ -30,13 +29,16 @@ class RepositoryFile:
 
     async def usage_memory(
             self, db: AsyncSession, **kwargs
-    ) -> List[FileModel]:
+    ) -> list[FileModel]:
         statement = select(func.sum(FileModel.size))  # type: ignore
-        filters = [getattr(FileModel, key) == value for key, value in kwargs.items()]
-        if filters:
+        if filters := await self.apply_filters(kwargs):
             statement = statement.where(and_(*filters))
         results = await db.execute(statement=statement)
         return results.scalars().one()
+
+    async def apply_filters(self, kwargs):
+        filters = [getattr(FileModel, key) == value for key, value in kwargs.items()]
+        return filters
 
     async def create(self, db: AsyncSession, *, obj_in: FileCreate) -> FileModel:
         obj_in_data = jsonable_encoder(obj_in)

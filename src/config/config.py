@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import BaseSettings, PostgresDsn, validator
 
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     FILE_FOLDER: str = 'files/'
 
     @validator('DB_URL', pre=True)
-    def assemble_db_connection(cls, value: str | None, values: Dict[str, Any]) -> Any:
+    def assemble_db_connection(cls, value: str | None, values: dict[str, Any]) -> Any:
         if isinstance(value, str) and value != '':
             return value
         return PostgresDsn.build(
@@ -41,7 +41,7 @@ class Settings(BaseSettings):
         )
 
     @validator('TEST_DB_URL', pre=True)
-    def assemble_test_db_connection(cls, value: Optional[str], values: Dict[str, Any]) -> Any:
+    def assemble_test_db_connection(cls, value: str | None, values: dict[str, Any]) -> Any:
         if isinstance(value, str) and value != '':
             return value
         return PostgresDsn.build(
