@@ -1,7 +1,4 @@
-import os
-import shutil
 import uuid
-from typing import List
 
 from fastapi import APIRouter, Depends, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,34 +7,57 @@ from starlette.responses import FileResponse
 from config.config import settings
 from config.logger import logger
 from db.db import get_session
-from helpers.raising_http_excp import RaiseHttpException
 from models import User
 from schemas.file import FileCreate, FileInDBBase
 from services.file import file_crud
 from services.user_manager import current_active_user
+from argparse import ArgumentParser
+from pathlib import Path
+import aiofiles
+from fastapi import HTTPException
+from starlette import status
+
+from config.constants import APIAnswers
+
+parser = ArgumentParser(
+    description="Copying files using asynchronous io API"
+)
+parser.add_argument("source", type=Path)
+parser.add_argument("dest", type=Path)
+parser.add_argument("--chunk-size", type=int, default=65535)
 
 storage_router = APIRouter(prefix='/file', tags=['File storage'])
 
 
-@storage_router.post('', status_code=201, response_model=FileInDBBase)
+@storage_router.post('', status_code=status.HTTP_201_CREATED, response_model=FileInDBBase)
 async def save_file(
-        file: UploadFile,
+        in_file: UploadFile,
         path: str,
         db: AsyncSession = Depends(get_session),
         user: User = Depends(current_active_user)
 ) -> FileCreate:
+    """
+    Create an item with all the information:
+
+    - **in_file**: File for save
+    - **path**: Additional information about the file. Path
+    """
     logger.info('Save file.')
-    id = uuid.uuid4()
-    filename = file.filename
+    id_ = uuid.uuid4()
+    filename = in_file.filename
+    out_file_path = rf'{settings.FILE_FOLDER}{id_}'
     file_path = rf'{path}/{filename}'
-    with open(rf'{settings.FILE_FOLDER}{id}', "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    size = os.path.getsize(rf'{settings.FILE_FOLDER}{id}')
+    size = 0
+
+    async with aiofiles.open(out_file_path, 'wb') as out_file:
+        while content := await in_file.read(2 ** 16):
+            size += len(content)  # async read chunk
+            await out_file.write(content)  # async write chunk
 
     obj_in = FileCreate(
-        id=id,
+        id=id_,
         path=file_path,
-        name=file.filename,
+        name=in_file.filename,
         size=size,
         created_by=user.id,
         is_downloadable=True
@@ -46,40 +66,59 @@ async def save_file(
     return db_obj
 
 
-@storage_router.get('/list', status_code=200, response_model=List[FileInDBBase])
+@storage_router.get('/list', status_code=status.HTTP_200_OK, response_model=list[FileInDBBase])
 async def get_files(
         db: AsyncSession = Depends(get_session),
         user: User = Depends(current_active_user)
 ):
+    """
+    Get items with all the information:
+    """
     logger.info('Get file.')
     query = await file_crud.get_multi(db=db, created_by=str(user.id))
-    RaiseHttpException.check_is_exist(query)
+    if not query:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=APIAnswers.NOT_FOUND
+        )
 
     return query
 
 
-@storage_router.get('/download', status_code=200)
+@storage_router.get('/download', status_code=status.HTTP_200_OK)
 async def download_file(
-        id: uuid.UUID,
+        id_: uuid.UUID,
         db: AsyncSession = Depends(get_session),
         user: User = Depends(current_active_user)
 ):
-    logger.info('Test ping dependent services.')
-    query = await file_crud.get_multi(db=db, id=id, is_downloadable=True)
-    RaiseHttpException.check_is_one(query)
+    """
+    Download file:
+
+    - **id_**: uuid item
+    """
+    logger.info(f'Download file {id_}.')
+    query = await file_crud.get_multi(db=db, id=id_, is_downloadable=True)
+
+    if isinstance(query, list) and len(query) != 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=APIAnswers.MANY_MATCHES
+        )
+
     file_model = query[0]
 
     return FileResponse(
-        rf'{settings.FILE_FOLDER}{id}',
+        rf'{settings.FILE_FOLDER}{id_}',
         media_type='application/octet-stream',
         filename=file_model.name
     )
 
 
-@storage_router.get('/usage_memory', status_code=200)
+@storage_router.get('/usage_memory', status_code=status.HTTP_200_OK)
 async def usage_memory(
         db: AsyncSession = Depends(get_session),
         user: User = Depends(current_active_user)
 ):
+    """
+    Get usage memory by files:
+    """
     logger.info('Get usage memory.')
     return await file_crud.usage_memory(db=db, created_by=str(user.id))
