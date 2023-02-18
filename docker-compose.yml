@@ -30,6 +30,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
       DB_PORT: ${DB_PORT}
+    volumes:
+      - ./log_file.log:/log_file.log
     depends_on:
       - db
     entrypoint: [ "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000" ]
@@ -44,3 +46,48 @@ services:
       - "8000:80"
     depends_on:
       - backend
+
+  logstash:
+      image: docker.elastic.co/logstash/logstash:7.10.2
+      depends_on:
+        - elasticsearch
+      environment:
+        XPACK_MONITORING_ENABLED: "false"
+        ES_HOST: "elasticsearch:9200"
+      ports:
+        - "5044:5044/udp"
+      volumes:
+        - ./deploy/logstash.conf:/config/logstash.conf:ro
+      command: logstash -f /config/logstash.conf
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
+    environment:
+      # Указываем ES запуститься в одном экземпляре
+      discovery.type: single-node
+    ports:
+      - 9200:9200
+    volumes:
+      - /tmp/esdata:/tmp/elasticsearch/data
+    # Обратите внимание: не стоит использовать для ELK тот же ES, который задействован для полнотекстового поиска в вашем сервисе
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.10.2
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+  filebeat:
+    container_name: filebeat
+    image: docker.elastic.co/beats/filebeat:7.3.2
+    restart: always
+    volumes:
+      - ./log_file.log:/var/app/log
+      - ./deploy/filebeat/filebeat.yaml:/usr/share/filebeat/filebeat.yaml
+    depends_on:
+      - logstash
+      - elasticsearch
+      - kibana
+    links:
+      - logstash

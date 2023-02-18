@@ -1,5 +1,6 @@
 import logging
 from logging.config import dictConfig
+import logstash
 
 
 def get_logger(logger_name: str, log_level: str = 'INFO') -> logging.Logger:
@@ -22,7 +23,7 @@ def get_logger(logger_name: str, log_level: str = 'INFO') -> logging.Logger:
                 'level': log_level,
                 'class': 'logging.handlers.RotatingFileHandler',
                 'formatter': 'default',
-                'filename': 'log_file.log',
+                'filename': './logs/file.log',
                 'maxBytes': 500000,
                 'backupCount': 10
             }
@@ -38,7 +39,12 @@ def get_logger(logger_name: str, log_level: str = 'INFO') -> logging.Logger:
 
     dictConfig(logger_config)
 
-    return logging.getLogger(logger_name)
+    logger = logging.getLogger(logger_name)
+
+    # logger.addHandler(logstash.LogstashHandler('localhost', 5044, version=1))
+    logger.addHandler(logstash.LogstashHandler('logstash', 5044, version=1))
+
+    return logger
 
 
 LOG_LEVEL = 'DEBUG'
