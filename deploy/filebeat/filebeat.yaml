@@ -1,0 +1,12 @@
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/log_file.log
+#  json:
+#    keys_under_root: true
+#    add_error_key: true
+
+output.logstash:
+  enabled: true
+  hosts: ["logstash:5045"]
