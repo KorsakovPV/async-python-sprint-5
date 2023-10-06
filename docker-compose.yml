@@ -9,8 +9,8 @@ services:
       context: .
       dockerfile: dockerization/Dockerfile-db
     restart: always
-    volumes:
-      - ./postgres_data:/var/lib/postgresql/data/
+#    volumes:
+#      - ./postgres_data:/var/lib/postgresql/data/
     environment:
       POSTGRES_HOST: db
       POSTGRES_USER: ${DB_USER}
@@ -20,6 +20,7 @@ services:
 
   backend:
     container_name: file_server
+    image: file_server
     build:
       context: .
       dockerfile: dockerization/Dockerfile-server
@@ -31,7 +32,7 @@ services:
       DB_NAME: ${DB_NAME}
       DB_PORT: ${DB_PORT}
     volumes:
-      - ./log_file.log:/log_file.log
+      - ./src/logs:/code/logs
     depends_on:
       - db
     entrypoint: [ "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000" ]
@@ -48,11 +49,14 @@ services:
       - backend
 
   logstash:
-      image: docker.elastic.co/logstash/logstash:7.10.2
+#      image: docker.elastic.co/logstash/logstash:7.10.2
+      image: docker.elastic.co/logstash/logstash:8.7.0
+#      image: docker.elastic.co/logstash/logstash:8.6.1
       depends_on:
         - elasticsearch
       environment:
-        XPACK_MONITORING_ENABLED: "false"
+        # Так как сейчас вы хотите запустить logstash без Elasticsearch, необходимо отключить встроенный мониторинг, отправляющий данные в ES
+#        XPACK_MONITORING_ENABLED: "false"
         ES_HOST: "elasticsearch:9200"
       ports:
         - "5044:5044/udp"
@@ -61,7 +65,9 @@ services:
       command: logstash -f /config/logstash.conf
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
+#    image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.7.0
+#    image: docker.elastic.co/elasticsearch/elasticsearch:8.6.1
     environment:
       # Указываем ES запуститься в одном экземпляре
       discovery.type: single-node
@@ -72,7 +78,9 @@ services:
     # Обратите внимание: не стоит использовать для ELK тот же ES, который задействован для полнотекстового поиска в вашем сервисе
 
   kibana:
-    image: docker.elastic.co/kibana/kibana:7.10.2
+#    image: docker.elastic.co/kibana/kibana:7.10.2
+    image: docker.elastic.co/kibana/kibana:8.7.0
+#    image: docker.elastic.co/kibana/kibana:8.6.1
     ports:
       - "5601:5601"
     depends_on:
@@ -80,14 +88,18 @@ services:
 
   filebeat:
     container_name: filebeat
-    image: docker.elastic.co/beats/filebeat:7.3.2
+#    image: docker.elastic.co/beats/filebeat:7.3.2
+    image: docker.elastic.co/beats/filebeat:8.7.0s
+#    image: docker.elastic.co/beats/filebeat:8.6.2
+    entrypoint: filebeat -e -strict.perms=false
+    user: root
     restart: always
     volumes:
-      - ./log_file.log:/var/app/log
-      - ./deploy/filebeat/filebeat.yaml:/usr/share/filebeat/filebeat.yaml
-    depends_on:
-      - logstash
-      - elasticsearch
-      - kibana
-    links:
-      - logstash
+      - ./src/logs:/var/app/log
+      - ./deploy/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
+#    depends_on:
+#      - logstash
+#      - elasticsearch
+#      - kibana
+#    links:
+#      - logstash
