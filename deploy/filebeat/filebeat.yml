@@ -1,0 +1,15 @@
+filebeat.config:
+  modules:
+    path: ${path.config}/modules.d/*.yml
+    reload.enabled: false
+
+filebeat.inputs:
+- type: log
+  paths:
+    - /var/app/log/*.log
+
+#output.console:
+#  pretty: true
+output.logstash:
+  enabled: true
+  hosts: ["logstash:5045"]
